@@ -1,5 +1,5 @@
 * === 2.1.1: promedio por periodo y línea (ticks cada 1) ===
-import excel "juego20252 haciendo econ.xlsx", sheet("Hoja1") firstrow clear
+import excel "experimentojuego1.xlsx", sheet("Hoja1") firstrow clear
 replace Round = Round[_n-1] if missing(Round)
 collapse (mean) contrib = Players'_contributions, by(Round)
 rename Round period
