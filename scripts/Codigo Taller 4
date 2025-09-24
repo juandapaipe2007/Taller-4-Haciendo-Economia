@@ -1,35 +1,50 @@
+******************************************************
+* === 2.1.1: promedio por periodo y línea (ticks cada 1) ===
+******************************************************
 cd "C:\Users\prestamour\Desktop\Taller-4-Haciendo-Economia-main\data\raw"
 
-* === 2.1.1: promedio por periodo y línea (ticks cada 1) ===
+* Importar datos del experimento propio
 import excel "experimentojuego1.xlsx", sheet("Hoja1") firstrow clear
+
+* Renombrar variables problemáticas
+rename Playerscontri~s contrib
+rename Payoffsinthis~e payoff
+
+* Llenar valores faltantes en Round
 replace Round = Round[_n-1] if missing(Round)
-collapse (mean) contrib = Players'_contributions, by(Round)
+
+* Colapsar por periodo (Round)
+collapse (mean) contrib, by(Round)
 rename Round period
-twoway line contrib period, xtitle("Período") ytitle("Contribución promedio") ///
+
+* Graficar contribución promedio por período
+twoway line contrib period, ///
+    xtitle("Período") ///
+    ytitle("Contribución promedio") ///
     title("Contribución promedio por período – Nuestro experimento") ///
     lwidth(medthick) msymbol(circle) ///
     xlabel(1(1)10)
 
-    * === A) HERRMANN: líneas por tratamiento, X=1..10 ===
+******************************************************
+* === A) HERRMANN: líneas por tratamiento, X=1..10 ===
+******************************************************
 clear all
 set more off
 
-* Importar hoja con las dos figuras (Figura 3: sin castigo; Figura 2A: con castigo)
 import excel "doing-economics-datafile-working-in-excel-project-2.xlsx", ///
     sheet("Public goods contributions") firstrow clear
 
 * -------- Panel SIN CASTIGO (Figura 3) --------
 preserve
     keep in 1/12
-    * La primera fila tiene el rótulo "Period", luego vienen las ciudades en columnas
-    rename (ContributionswithoutpunishmentFigure3i Unnamed1-Unnamed16) (Period c1-c16)
+    rename Contributionsw~t Period
+    rename (B C D E F G H I J K L M N O P Q) ///
+           (c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16)
     keep Period c*
     drop if Period=="Period"
     destring Period c*, replace
     reshape long c, i(Period) j(city)
     gen treatment = "Sin castigo"
-    tempname mem_sin
-    tempvar c_sin
     rename c contrib
     tempfile sin
     save `sin'
@@ -38,7 +53,9 @@ restore
 * -------- Panel CON CASTIGO (Figura 2A) --------
 preserve
     keep in 15/25
-    rename (ContributionswithoutpunishmentFigure3i Unnamed1-Unnamed16) (Period c1-c16)
+    rename Contributionsw~t Period
+    rename (B C D E F G H I J K L M N O P Q) ///
+           (c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16)
     keep Period c*
     drop if Period=="Period"
     destring Period c*, replace
@@ -54,30 +71,31 @@ use `sin', clear
 append using `con'
 collapse (mean) contrib, by(treatment Period)
 
-* Graficar líneas separadas por tratamiento, X con ticks 1..10
-twoway ///
-    (line contrib Period if treatment=="Sin castigo", lwidth(medthick) msymbol(circle)) ///
-    (line contrib Period if treatment=="Con castigo", lwidth(medthick) msymbol(square)), ///
-    legend(order(1 "Sin castigo" 2 "Con castigo") pos(6) ring(0)) ///
-    xtitle("Período") ytitle("Contribución promedio (promedio ciudades)") ///
-    title("Contribuciones promedio por período – Herrmann et al. (2008)") ///
-    xlabel(1(1)10)
+* Graficar líneas separadas
+twoway (line contrib Period if treatment=="Sin castigo", lwidth(medthick) msymbol(circle)) ///
+       (line contrib Period if treatment=="Con castigo", lwidth(medthick) msymbol(square)), ///
+       legend(order(1 "Sin castigo" 2 "Con castigo") pos(6) ring(0)) ///
+       xtitle("Período") ytitle("Contribución promedio (promedio ciudades)") ///
+       title("Contribuciones promedio por período – Herrmann et al. (2008)") ///
+       xlabel(1(1)10)
 
-* (Opcional) Guardar la figura
 graph export "fig_2_2_1_herrmann_linea_ticks.png", width(1600) replace
 
-* === Punto 2.2.2: gráfico de columnas en STATA ===
+******************************************************
+* === 2.2.2: gráfico de columnas (periodos 1 y 10) ===
+******************************************************
 clear all
 set more off
 
-* Importar la hoja de datos de Herrmann
 import excel "doing-economics-datafile-working-in-excel-project-2.xlsx", ///
     sheet("Public goods contributions") firstrow clear
 
 * -------- Panel SIN CASTIGO --------
 preserve
     keep in 1/12
-    rename (ContributionswithoutpunishmentFigure3i Unnamed1-Unnamed16) (Period c1-c16)
+    rename Contributionsw~t Period
+    rename (B C D E F G H I J K L M N O P Q) ///
+           (c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16)
     keep Period c*
     drop if Period=="Period"
     destring Period c*, replace
@@ -91,7 +109,9 @@ restore
 * -------- Panel CON CASTIGO --------
 preserve
     keep in 15/25
-    rename (ContributionswithoutpunishmentFigure3i Unnamed1-Unnamed16) (Period c1-c16)
+    rename Contributionsw~t Period
+    rename (B C D E F G H I J K L M N O P Q) ///
+           (c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16)
     keep Period c*
     drop if Period=="Period"
     destring Period c*, replace
@@ -102,38 +122,35 @@ preserve
     save `con'
 restore
 
-* Unir datasets
 use `sin', clear
 append using `con'
 
-* Calcular promedio por período y tratamiento
 collapse (mean) contrib, by(treatment Period)
-
-* Mantener solo períodos 1 y 10
 keep if Period==1 | Period==10
 
-* Gráfico de barras
 graph bar contrib, over(treatment) over(Period) ///
     blabel(bar, format(%4.1f)) ///
     ytitle("Contribución promedio (promedio ciudades)") ///
     title("Contribuciones promedio en períodos 1 y 10 - Herrmann et al. (2008)") ///
     legend(off)
 
-* Exportar gráfico
 graph export "fig_2_2_2_herrmann_barras.png", width(1600) replace
 
-* === P2.2.4: valores mínimo y máximo por período y tratamiento ===
+******************************************************
+* === 2.2.4 y 2.2.5: valores min, max, varianza, rango ===
+******************************************************
 clear all
 set more off
 
-* Importar la hoja de datos
 import excel "doing-economics-datafile-working-in-excel-project-2.xlsx", ///
     sheet("Public goods contributions") firstrow clear
 
 * -------- SIN CASTIGO --------
 preserve
     keep in 1/12
-    rename (ContributionswithoutpunishmentFigure3i Unnamed1-Unnamed16) (Period c1-c16)
+    rename Contributionsw~t Period
+    rename (B C D E F G H I J K L M N O P Q) ///
+           (c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16)
     keep Period c*
     drop if Period=="Period"
     destring Period c*, replace
@@ -148,7 +165,9 @@ restore
 * -------- CON CASTIGO --------
 preserve
     keep in 15/25
-    rename (ContributionswithoutpunishmentFigure3i Unnamed1-Unnamed16) (Period c1-c16)
+    rename Contributionsw~t Period
+    rename (B C D E F G H I J K L M N O P Q) ///
+           (c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16)
     keep Period c*
     drop if Period=="Period"
     destring Period c*, replace
@@ -160,77 +179,33 @@ preserve
     save `con'
 restore
 
-* Unir datasets y calcular min y max
 use `sin', clear
 append using `con'
 
-collapse (min) min=contrib (max) max=contrib, by(treatment Period)
-
-list, sepby(treatment)
-
-* === P2.2.5: estadísticas descriptivas completas ===
-clear all
-set more off
-
-* Importar los datos desde el archivo de Excel
-import excel "doing-economics-datafile-working-in-excel-project-2.xlsx", ///
-    sheet("Public goods contributions") firstrow clear
-
-* -------- SIN CASTIGO --------
-preserve
-    keep in 1/12
-    rename (ContributionswithoutpunishmentFigure3i Unnamed1-Unnamed16) (Period c1-c16)
-    keep Period c*
-    drop if Period=="Period"
-    destring Period c*, replace
-    reshape long c, i(Period) j(city)
-    rename c contrib
-    gen treatment = "Sin castigo"
-    keep if Period==1 | Period==10
-    tempfile sin
-    save `sin'
-restore
-
-* -------- CON CASTIGO --------
-preserve
-    keep in 15/25
-    rename (ContributionswithoutpunishmentFigure3i Unnamed1-Unnamed16) (Period c1-c16)
-    keep Period c*
-    drop if Period=="Period"
-    destring Period c*, replace
-    reshape long c, i(Period) j(city)
-    rename c contrib
-    gen treatment = "Con castigo"
-    keep if Period==1 | Period==10
-    tempfile con
-    save `con'
-restore
-
-* Unir ambos tratamientos
-use `sin', clear
-append using `con'
-
-* Calcular estadísticas: media, varianza, sd, min, max, rango
-collapse (mean) mean=contrib (sd) sd=contrib (var) var=contrib ///
+collapse (mean) mean=contrib (sd) sd=contrib ///
          (min) min=contrib (max) max=contrib, by(treatment Period)
 
-* Crear variable rango = max - min
+* Calcular varianza y rango
+gen var = sd^2
 gen rango = max - min
 
-* Mostrar tabla final
 list treatment Period mean var sd min max rango, sepby(treatment)
 
+******************************************************
+* === Prueba t emparejada (Período 1 y 10) ===
+******************************************************
 clear all
 set more off
 
-* Importar hoja con datos de Herrmann (Fig. 3 = sin castigo, Fig. 2A = con castigo)
 import excel "doing-economics-datafile-working-in-excel-project-2.xlsx", ///
     sheet("Public goods contributions") firstrow clear
 
 * ---------- SIN CASTIGO (Período 1) ----------
 preserve
     keep in 1/12
-    rename (ContributionswithoutpunishmentFigure3i Unnamed1-Unnamed16) (Period c1-c16)
+    rename Contributionsw~t Period
+    rename (B C D E F G H I J K L M N O P Q) ///
+           (c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16)
     keep Period c*
     drop if Period=="Period"
     destring Period c*, replace
@@ -239,13 +214,15 @@ preserve
     rename c contrib_sin
     keep city contrib_sin
     tempfile sin1
-    save sin1'
+    save `sin1'
 restore
 
 * ---------- CON CASTIGO (Período 1) ----------
 preserve
     keep in 15/25
-    rename (ContributionswithoutpunishmentFigure3i Unnamed1-Unnamed16) (Period c1-c16)
+    rename Contributionsw~t Period
+    rename (B C D E F G H I J K L M N O P Q) ///
+           (c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16)
     keep Period c*
     drop if Period=="Period"
     destring Period c*, replace
@@ -254,24 +231,25 @@ preserve
     rename c contrib_con
     keep city contrib_con
     tempfile con1
-    save con1'
+    save `con1'
 restore
 
-* Unir por ciudad y prueba t emparejada
-use sin1', clear
-merge 1:1 city using con1', nogen
+use `sin1', clear
+merge 1:1 city using `con1', nogen
 ttest contrib_con == contrib_sin
 
+* ---------- Repetir para Período 10 ----------
 clear all
 set more off
 
 import excel "doing-economics-datafile-working-in-excel-project-2.xlsx", ///
     sheet("Public goods contributions") firstrow clear
 
-* ---------- SIN CASTIGO (Período 10) ----------
 preserve
     keep in 1/12
-    rename (ContributionswithoutpunishmentFigure3i Unnamed1-Unnamed16) (Period c1-c16)
+    rename Contributionsw~t Period
+    rename (B C D E F G H I J K L M N O P Q) ///
+           (c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16)
     keep Period c*
     drop if Period=="Period"
     destring Period c*, replace
@@ -283,10 +261,11 @@ preserve
     save `sin10'
 restore
 
-* ---------- CON CASTIGO (Período 10) ----------
 preserve
     keep in 15/25
-    rename (ContributionswithoutpunishmentFigure3i Unnamed1-Unnamed16) (Period c1-c16)
+    rename Contributionsw~t Period
+    rename (B C D E F G H I J K L M N O P Q) ///
+           (c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16)
     keep Period c*
     drop if Period=="Period"
     destring Period c*, replace
@@ -298,7 +277,6 @@ preserve
     save `con10'
 restore
 
-* Unir datasets y correr la prueba t emparejada
 use `sin10', clear
 merge 1:1 city using `con10', nogen
 ttest contrib_con == contrib_sin
