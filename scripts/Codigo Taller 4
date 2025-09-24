@@ -1,3 +1,5 @@
+cd "C:\Users\prestamour\Desktop\Taller-4-Haciendo-Economia-main\data\raw"
+
 * === 2.1.1: promedio por periodo y línea (ticks cada 1) ===
 import excel "experimentojuego1.xlsx", sheet("Hoja1") firstrow clear
 replace Round = Round[_n-1] if missing(Round)
